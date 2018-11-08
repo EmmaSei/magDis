@@ -1,12 +1,17 @@
 package com.seiranyan.jsonpostgres.utils;
 
 
+import com.seiranyan.jsonpostgres.entities.Vacancy;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JsonManipulation {
+
+    //private JSONParser parser = new JSONParser();
 
     public void transformFile(String fileName){
         File fnew = new File(fileName);
@@ -41,4 +46,36 @@ public class JsonManipulation {
         }
 
     }
+
+    public Vacancy toVacancy (String stringVacancy){
+        Vacancy vacancy = new Vacancy();
+
+        JSONObject objVacancy = new JSONObject(stringVacancy);
+
+        vacancy.setId(objVacancy.getLong("id"));
+        vacancy.setPremium(objVacancy.getBoolean("premium"));
+        vacancy.setCreated_at(objVacancy.getString("created_at"));
+        vacancy.setName(objVacancy.getString("name"));
+        vacancy.setArea(new JSONObject(objVacancy.get("area").toString()).getString("name"));
+
+        JSONObject objSalary = (objVacancy.get("salary")!=null ? objVacancy.getJSONObject("salary") : new JSONObject("{\"to\": 0, \"from\": 0}"));
+
+        vacancy.setSalary_from(objSalary.get("from").equals(null) ? 0 :objSalary.getFloat("from"));
+        vacancy.setSalary_to(objSalary.get("to").equals(null) ? 0 : objSalary.getFloat("to"));
+        return vacancy;
+    }
+
+    public ArrayList<Long> getIds (String stringVacancies){
+
+        JSONObject objVacancy = new JSONObject(stringVacancies);
+        ArrayList<Long> ids = new ArrayList();
+        JSONArray arrayVacancy = objVacancy.getJSONArray("items");
+        //JSONObject objVacancy = new JSONObject(stringVacancy);
+
+        for (int i = 0; i < arrayVacancy.length(); i++) {
+            ids.add(arrayVacancy.getJSONObject(i).getLong("id"));
+        }
+        return ids;
+    }
 }
+
