@@ -7,6 +7,8 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 
 import java.io.IOException;
@@ -16,15 +18,15 @@ public class HHClient {
 
 
     private static final String baseUrl = "https://api.hh.ru";
-    private static final String userAgent = "AppV/0.1 (semmg@mail.com)";
+    private static final String userAgent = "AppV/0.1 (semmg@mail.ru)";
     private static final String clientID = "LI274TOFGU27TDCDL2VG6C4BV928R2L630R7S14PSFQKAPS7LHI3EUCL65P9K1J3";
     private static final String clientSecret = "SPHJBKGG0S168PE58O1H57T6VI23R2PGB3RRB4HPOFAEDVABJDVHCSH53PHQFVPH";
-    private static final String userLogin = "serge.ivanov.testuser@gmail.com";
-    private static final String password = "testuser1";
+    private static final String userLogin = "semmg@mail.ru";
+    private static final String password = "VB0RUc";
     private static HttpHeaders headers;
 
     public HHClient() {
-        String code = getAuthCode(userLogin, password);
+        String code = getAuthCode();
         String accessToken = null;
         try {
             accessToken = getAccessToken(code);
@@ -82,13 +84,15 @@ public class HHClient {
 
     //открываем страницу авторизации пользователя, вводим логин и пароль, подтверждаем;
     //из полученного URL вырезаем временный код авторизации;
-    private String getAuthCode(String userLogin, String password){
-        //если хотим наблюдать визуально выбираем FirefoxDriver() или ChromeDriver(), например;
-       // WebDriver driver = new FirefoxDriver();
-        WebDriver driver = new HtmlUnitDriver();
+    private String getAuthCode(){
+        //если хотим наблюдать визуально выбираем FirefoxDriver() или ChromeDriver(), например;;
+        System.setProperty("webdriver.chrome.driver", "D:\\lib\\chromedriver.exe");
+        WebDriver driver = new ChromeDriver();
+        //WebDriver driver = new HtmlUnitDriver();
 
         driver.get("https://m.hh.ru/oauth/authorize?response_type=code&client_id=" + clientID);
         driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+        //System.out.println(driver.);
         driver.findElement(By.name("username")).clear();
         driver.findElement(By.name("username")).sendKeys(userLogin);
         driver.findElement(By.name("password")).clear();
