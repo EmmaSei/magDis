@@ -26,19 +26,19 @@ public class HHClient {
     private static HttpHeaders headers;
 
     public HHClient() {
-        String code = getAuthCode();
-        String accessToken = null;
-        try {
-            accessToken = getAccessToken(code);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        String code = getAuthCode();
+//        String accessToken = null;
+//        try {
+//            accessToken = getAccessToken(code);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         //String accessToken = "JFQRG1IGMDR14E4QH11EGO1VTSDJBALSB2GBJ21PDFH7RLS7BFKHVOJ3CV9VH4HL";
         headers = new HttpHeaders();
         headers.setUserAgent(userAgent);
         headers.setAcceptEncoding("json");
         headers.setAccept("*/*");
-        headers.setAuthorization("Bearer " + accessToken);
+  //      headers.setAuthorization("Bearer " + accessToken);
         System.setProperty("https.proxyHost", "proxy.corp.tele2.ru");
         System.setProperty("https.proxyPort", "8080");
     }
@@ -47,12 +47,24 @@ public class HHClient {
         return executeRequest("/vacancies/"+id);
     }
 
+    public HttpResponse getVacancies(String idArea, int page)throws IOException {
+        return executeRequest("/vacancies?area="+idArea+"&page="+page);
+    }
+
     public HttpResponse getVacancies(String idArea)throws IOException {
-        return executeRequest("/vacancies?area="+idArea);
+        return getVacancies(idArea, 0);
     }
 
     public HttpResponse getStatByIdVacancy(String id)throws IOException {
         return executeRequest("/vacancies/"+id+"/stats");
+    }
+
+    public String getAreaById(Long id)throws IOException {
+        return convertStreamToString(executeRequest("/areas/"+id).getContent());
+    }
+
+    public HttpResponse getAreas()throws IOException {
+        return executeRequest("/areas/");
     }
 
     private HttpResponse executeRequest (String pathUrl) throws IOException {
@@ -102,6 +114,11 @@ public class HHClient {
         driver.close();
 
         return currentUrl.substring(currentUrl.indexOf("?code=")).substring(6);
+    }
+
+    private static String convertStreamToString(java.io.InputStream is) {
+        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 
 }

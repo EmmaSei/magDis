@@ -1,17 +1,19 @@
 package com.seiranyan.jsonpostgres.controllers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.seiranyan.jsonpostgres.entities.Area;
 import com.seiranyan.jsonpostgres.entities.Vacancy;
+import com.seiranyan.jsonpostgres.repositories.AreaRepository;
 import com.seiranyan.jsonpostgres.repositories.VacancyRepository;
 import com.seiranyan.jsonpostgres.utils.HHClient;
 import com.seiranyan.jsonpostgres.utils.JsonManipulation;
+import org.apache.xpath.operations.Bool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +29,7 @@ public class VacancyController {
     private final static Logger logger = LoggerFactory.getLogger(VacancyController.class);
 
 
+
     private VacancyRepository vacancyRepository;
     private static final HHClient hhClient = new HHClient();
     private static final JsonManipulation jsonManipulation = new JsonManipulation();
@@ -36,15 +39,37 @@ public class VacancyController {
         this.vacancyRepository = vacancyRepository;
     }
 
-
-    @RequestMapping("json")
+    @RequestMapping("go")
     @ResponseBody
-    public Vacancy json(){
+    public Boolean go(){
+        List<Area> areas = AreaController.areaRepository.findAll();
+        for (Area area: areas) {
+            if(area.getParent_id()!= null){
+                List<Long> vacIds = getVacancyIds(area.getId().toString());
+//                if (!vacancyRepository.findById(vacIds.get(0)).isPresent()){
+//                    continue;
+//                }
+                for (Long vacId: vacIds) {
+                    if (!vacancyRepository.findById(vacId).isPresent()) {
+                        vacancyRepository.save(getVacancy(vacId.toString()));
+                    }
+                }
+            }
+            //AreaController.areaRepository.findById(area.getParent_id()).get().getParent_id()
+        }
+        return true;
+    }
+
+
+    @RequestMapping("vacancies")
+    @ResponseBody
+    public Vacancy getVacancy(@RequestParam("id") String id){
         Vacancy vacancy = new Vacancy();
             try {
-                HttpResponse resp =  hhClient.getVacancy("28713828");
+                HttpResponse resp =  hhClient.getVacancy(id);
                 if(resp.getStatusCode()==200){
-                    return jsonManipulation.toVacancy(convertStreamToString(resp.getContent()));
+                    vacancy = vacancyRepository.save(jsonManipulation.toVacancy(convertStreamToString(resp.getContent())));
+                    return vacancy;
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -52,16 +77,29 @@ public class VacancyController {
         return vacancy;
     }
 
-    @RequestMapping("vacancies")
+    @RequestMapping("vacanciesByArea")
     @ResponseBody
-    public List<Long> getVacancyIds(){
+    public List<Long> getVacancyIds(@RequestParam("idArea") String idArea){
 
-        ArrayList<Long> list = null;
+        ArrayList<Long> listIds = null;
         HttpResponse resp = null;
         try {
-            resp = hhClient.getVacancies("1");
+            resp = hhClient.getVacancies(idArea);
             if(resp.getStatusCode()==200){
-                list = jsonManipulation.getIds(convertStreamToString(resp.getContent()));
+                String r = convertStreamToString(resp.getContent());
+                listIds = jsonManipulation.getIds(r);
+                if (!vacancyRepository.findById(listIds.get(0)).isPresent()){
+                    for (int i = 1; i < jsonManipulation.getPagesNum(r); i++) {
+                        resp = hhClient.getVacancies(idArea, i);
+                        ArrayList<Long> arr = jsonManipulation.getIds(convertStreamToString(resp.getContent()));
+                        if (vacancyRepository.findById(arr.get(0)).isPresent()){
+                            return listIds;
+                        }
+                        listIds.addAll(arr);
+                    }
+                }
+
+
             }else{
                 logger.error("url is null");
             }
@@ -69,8 +107,10 @@ public class VacancyController {
             e.printStackTrace();
         }
 
-        return list;
+        return listIds;
     }
+
+
 
     @RequestMapping("vacancyStats")
     @ResponseBody
