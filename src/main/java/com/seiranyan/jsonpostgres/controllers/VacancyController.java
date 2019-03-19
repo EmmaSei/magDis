@@ -8,21 +8,25 @@ import com.seiranyan.jsonpostgres.repositories.AreaRepository;
 import com.seiranyan.jsonpostgres.repositories.VacancyRepository;
 import com.seiranyan.jsonpostgres.utils.HHClient;
 import com.seiranyan.jsonpostgres.utils.JsonManipulation;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.xpath.operations.Bool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @RestController
 public class VacancyController {
 
@@ -51,7 +55,10 @@ public class VacancyController {
 //                }
                 for (Long vacId: vacIds) {
                     if (!vacancyRepository.findById(vacId).isPresent()) {
-                        vacancyRepository.save(getVacancy(vacId.toString()));
+                        Vacancy vacancy;
+                        if ((vacancy = getVacancy(vacId.toString()) )!= null) {
+                            vacancyRepository.save(vacancy);
+                        }
                     }
                 }
             }
@@ -64,7 +71,7 @@ public class VacancyController {
     @RequestMapping("vacancies")
     @ResponseBody
     public Vacancy getVacancy(@RequestParam("id") String id){
-        Vacancy vacancy = new Vacancy();
+        Vacancy vacancy = null;
             try {
                 HttpResponse resp =  hhClient.getVacancy(id);
                 if(resp.getStatusCode()==200){
@@ -88,7 +95,7 @@ public class VacancyController {
             if(resp.getStatusCode()==200){
                 String r = convertStreamToString(resp.getContent());
                 listIds = jsonManipulation.getIds(r);
-                if (!vacancyRepository.findById(listIds.get(0)).isPresent()){
+                if (!listIds.isEmpty() && !vacancyRepository.findById(listIds.get(0)).isPresent()){
                     for (int i = 1; i < jsonManipulation.getPagesNum(r); i++) {
                         resp = hhClient.getVacancies(idArea, i);
                         ArrayList<Long> arr = jsonManipulation.getIds(convertStreamToString(resp.getContent()));
@@ -109,7 +116,6 @@ public class VacancyController {
 
         return listIds;
     }
-
 
 
     @RequestMapping("vacancyStats")
@@ -139,4 +145,5 @@ public class VacancyController {
         java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
+
 }

@@ -20,8 +20,8 @@ public class Vacancy{
     private Float salary_from;
     private String city;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_area", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_area")
     private Area area;
 
     private String experience;
